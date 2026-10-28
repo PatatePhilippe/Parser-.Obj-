@@ -48,12 +48,12 @@ Mat3  mat3_rot_z(double angle);
 
 Vec3  mat3_mul(Mat3 m, Vec3 v);
 //Cube  cube_make(double size);
-void  rotate_obj(Triangle poly_input[],Triangle *poly_output[],Mat3 matProjection,size_t size);
+void  rotate_obj(Triangle *poly_input,Triangle *poly_output,Mat3 matProjection,long unsigned int size);
 void  move_cam(Camera *cam, char dir,int amount);
 void  turn_cam(Camera *cam, char dir, double amount);
 Vec3  finalOperation(Vec3 v);//TODO : change name
 Triangle triangle_final(Triangle *t,Mat4 *projection3D);
-void move_obj(Triangle *poly_input[] ,double dist,int indexOfAxe,size_t size);
+void move_obj(Triangle *poly_input ,double dist,int indexOfAxe,long unsigned int size);
 Mat4 projectionMatrix();
 
 

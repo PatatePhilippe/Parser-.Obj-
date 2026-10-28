@@ -28,7 +28,6 @@ add_executable(parseurTest
 )
 
 target_link_libraries(parseurTest PRIVATE alexer)
-
 find_package(SDL3 REQUIRED)
 
 
@@ -39,7 +38,10 @@ add_executable(testWindows
         ./3DMotor/fileReader.c
         ./3DMotor/fileReader.h
         parser/OBJ_parser.h
+        parser/OBJ_parser.c
 )
+target_link_libraries(testWindows PRIVATE alexer)
+
 
 target_link_libraries(testWindows PRIVATE m)
 target_link_libraries(testWindows PRIVATE SDL3::SDL3)

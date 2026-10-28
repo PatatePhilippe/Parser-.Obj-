@@ -115,10 +115,10 @@ Triangle triangle_final(Triangle *t,Mat4 *projection3D) { //TODO : change name t
 //     return c;
 // }
 
-void rotate_obj(Triangle poly_input[],Triangle *poly_output[],Mat3 matProjection,size_t size) {//TODO : more explicit name
+void rotate_obj(Triangle *poly_input,Triangle *poly_output,Mat3 matProjection,long unsigned int size) {//TODO : more explicit name
     for(int i =0 ; i < size; i++) {
         for(int j =0 ; j < 3; j++) {
-            poly_output[i]->points[j]=mat3_mul(matProjection,poly_input[i].points[j]);
+            poly_output[i].points[j]=mat3_mul(matProjection,poly_input[i].points[j]);
         }
     }
 }
@@ -132,10 +132,10 @@ void move_cam(Camera *cam,char dir,int amount) {
         cam->y+=amount;
     }
 }
-void move_obj(Triangle *poly_input[] ,double dist,int indexOfAxe,size_t size) {//TODO : change var name it's not really explicit
+void move_obj(Triangle *poly_input ,double dist,int indexOfAxe,long unsigned int size) {//TODO : change var name it's not really explicit
     for (int i = 0; i < size; ++i){
         for (int j = 0; j < 3; ++j){
-            poly_input[i]->points[j].pos[indexOfAxe] += dist;
+            poly_input[i].points[j].pos[indexOfAxe] += dist;
         }
     }
 }

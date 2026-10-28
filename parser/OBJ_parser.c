@@ -47,13 +47,6 @@ const char *sl_comments[] = {
     "#"
 };
 
-typedef struct {
-    unsigned int *verticules;
-} triangle;
-
-typedef struct {
-    double coords[3];
-} vertex;
 
 
 typedef struct {//TODO : use that later to extract data
@@ -72,15 +65,15 @@ uint64_t start_tokens[]={ALEXER_ID(ALEXER_KEYWORD,KEYWORD_VERTEX),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_VERTEX),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_S),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_USE),
-                        ALEXER_END,};
+                        ALEXER_END};
 uint64_t start_double[]={ALEXER_ID(ALEXER_PUNCT,PUNCT_MINUS),
                         ALEXER_INT};
 
-triangle trianglesIndexs[400];//TODO : make an auto incrementing triangle memory space or read the file in advance and count the number of vertexs points and normals
-vertex vertexList[400];//TODO : make an auto incrementing vertex memory space or read the file in advance and count the number of vertexs points and normals
 
-unsigned int cptTriangles=0;
-unsigned int cptVertexs=0;
+triangle trianglesIndexs[400] = {0};
+vertex vertexList[400] = {0};
+int cptTriangles = 0;
+int cptVertexs = 0;
 
 bool double_parser(double *resultPointer,Alexer_Token *t,Alexer *l){//TODO : change variables names
     bool negation=false;
@@ -138,7 +131,6 @@ bool polygon_parser(Alexer_Token *t,Alexer *l){
         if (!alexer_expect_id(l,*t,ALEXER_ID(ALEXER_PUNCT,PUNCT_DOUBLE_SLASH))) return false;
         alexer_get_token(l, t );
         if (!(alexer_expect_id(l,*t, ALEXER_INT))) return false;
-        alexer_get_token(l, t );
 
         memcpy(&trianglesIndexs[cptTriangles].verticules[0],&tempPos[0],3*sizeof(unsigned int));
         cptTriangles++;
@@ -147,7 +139,7 @@ bool polygon_parser(Alexer_Token *t,Alexer *l){
         trianglesIndexs[cptTriangles].verticules[1]=tempPos[3];
         trianglesIndexs[cptTriangles].verticules[2]=tempPos[0];
     }else{
-        if(!alexer_expect_one_of_ids(l,*t,start_tokens,8))return false;
+        if(!alexer_expect_one_of_ids(l,*t,start_tokens,9))return false;
         memcpy(&trianglesIndexs[cptTriangles].verticules[0],&tempPos[0],3*sizeof(unsigned int));
     }
     cptTriangles++;
@@ -189,6 +181,7 @@ bool vertex_parser(Alexer_Token *t,Alexer *l){
     for (int i = 0; i < 3; ++i)
     {
         if (!double_parser(&vertexList[cptVertexs].coords[i],t,l))return false;
+        printf("%f \n",vertexList[cptVertexs].coords[i]);
         alexer_get_token(l, t );
     }
     cptVertexs+=1;
@@ -214,20 +207,23 @@ bool normal_parser(Alexer_Token *t,Alexer *l){
 }//TODO : the result is verified and not used for now
 
 
-int main(){
+int parser(){
     const char *file_path = "example/path"; // The file path is only needed for diagnostic message
     const char *content =
     "# Blender v2.78 (sub 0) OBJ File: '12.blend\n"
     "# www.blender.org\n"
     "mtllib Goldfish_01.mtl\n"
     "g Goldfish_01_Cube.058\n"
-    "v -1.791817 2.124454 2.120096\n"
-    "v -3.791817 1.124454 3.120096\n"
-    "v -2.721817 -2.124454 -0.120096\n"
+    "v 0.500001 0.500001 0.500001\n"
+    "v -0.500000 0.500000 0.500000\n"
+    "v -0.500000 -0.500000 0.500000\n"
+    "v 0.500000 -0.500000 0.500000\n"
+    "v 1.200000 0.500000 1.000000\n"
     "vn -0.4091 -0.8730 0.2654\n"
     "usemtl FF5722\n"
     "s off\n"
-    "f 31//1 19//1 5//1 26//1\n"
+    "f 0//1 1//1 2//1 3//1\n"
+    "f 3//1 4//1 0//1 \n"
     "";
     Alexer l=alexer_create(file_path, content, strlen(content));
     l.puncts = puncts;
@@ -292,9 +288,16 @@ int main(){
                 break;
         }
     }
-    printf("compteurs %d %d",cptTriangles,cptVertexs);
+    printf("compteurs t:%d v:%d \n",cptTriangles,cptVertexs);
     for (int i = 0; i < cptVertexs; ++i){
-        printf("coords point %f, %f, %f \n",vertexList[i].coords[0],vertexList[i].coords[1],vertexList[i].coords[2]);
+        printf("coords points %f, %f, %f \n",vertexList[i].coords[0],
+            vertexList[i].coords[1],
+            vertexList[i].coords[2]);
+    }
+    for (int i = 0; i < cptTriangles; ++i){
+        printf("triangles from vertexs indexs %d, %d, %d \n",trianglesIndexs[i].verticules[0],
+            trianglesIndexs[i].verticules[1],
+            trianglesIndexs[i].verticules[2]);
     }
     return 0;
 }

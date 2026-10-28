@@ -7,25 +7,12 @@
 #include<unistd.h>
 #include <math.h>
 #include <math.h>
+#include "../parser/OBJ_parser.h"
 
-#include "fileReader.h"
 
 long lightVec[3]={0.0,0.0,-1.0};
 
-// void printCube(Cube c)
-// {
-//     for (int i = 0; i < 12; ++i)
-//     {
-//         for (int j = 0; j < 3; ++j)
-//         {
-//             printf("(%f %f %f)\n",c.mesh[i].points[j].pos[0],
-//                 c.mesh[i].points[j].pos[1],
-//                 c.mesh[i].points[j].pos[2]);
-//         }
-//     }
-// }
-
-void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys[],Camera *cam,Mat4 *proj3D,size_t size)
+void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys,Camera *cam,Mat4 *proj3D,size_t size)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -33,8 +20,8 @@ void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys[],Camera *cam,Mat4 *pro
         Vec3 vecN,vecA,vecB;
         for (int i = 0; i < 3; ++i)
         {
-            vecA.pos[i]=polys[i]->points[1].pos[i]-polys[i]->points[0].pos[i];
-            vecB.pos[i]=polys[i]->points[2].pos[i]-polys[i]->points[0].pos[i];
+            vecA.pos[i]=polys[i].points[1].pos[i]-polys[i].points[0].pos[i];
+            vecB.pos[i]=polys[i].points[2].pos[i]-polys[i].points[0].pos[i];
         }
         //vecteur normalisé perpendiculaire au plan du vertex
         vecN.pos[0]=vecA.pos[1]*vecB.pos[2]-vecA.pos[2]*vecB.pos[1];
@@ -50,20 +37,20 @@ void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys[],Camera *cam,Mat4 *pro
         vecN.pos[2]/=res;
 
         double facing =
-            vecN.pos[0] * (polys[i]->points[2].pos[0] - cam->x) +
-            vecN.pos[1] * (polys[i]->points[2].pos[1] - cam->y) +
-            vecN.pos[2] * (polys[i]->points[2].pos[2] - cam->z);
+            vecN.pos[0] * (polys[i].points[2].pos[0] - cam->x) +
+            vecN.pos[1] * (polys[i].points[2].pos[1] - cam->y) +
+            vecN.pos[2] * (polys[i].points[2].pos[2] - cam->z);
 
-        if ((vecN.pos[0] * (polys[i]->points[2].pos[0]-cam->x))+
-            (vecN.pos[1] * (polys[i]->points[2].pos[1]-cam->y))+
-            (vecN.pos[2] * (polys[i]->points[2].pos[2]-cam->z))<-0.35F)
+        if ((vecN.pos[0] * (polys[i].points[2].pos[0]-cam->x))+
+            (vecN.pos[1] * (polys[i].points[2].pos[1]-cam->y))+
+            (vecN.pos[2] * (polys[i].points[2].pos[2]-cam->z))<-0.35F)
         {
             double dotProduct=(vecN.pos[0]*lightVec[0]+
             vecN.pos[1]*lightVec[1]+
             vecN.pos[2]*lightVec[2]);
 
             //showing my vertex
-            Triangle t=triangle_final(polys[i],proj3D);
+            Triangle t=triangle_final(&polys[i],proj3D);
             SDL_Vertex test[3];
             for (int i = 0; i < 3; ++i)
             {
@@ -80,17 +67,22 @@ void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys[],Camera *cam,Mat4 *pro
 }
 
 
-void all_proj_obj(Triangle *poly_input[],Triangle *poly_output[],Camera *cam,Mat4 *proj3D,SDL_Renderer *rendu){
+void all_proj_obj(Triangle *poly_input,Triangle *poly_output,Camera *cam,Mat4 *proj3D,SDL_Renderer *rendu,long unsigned int size){
+    Triangle poly_input_copy[size];
+    memcpy(poly_input_copy, poly_input, size * sizeof(Triangle));
+
     Mat3 mat_y = mat3_rot_y(cam->angleY);
     Mat3 mat_x = mat3_rot_x(cam->angleX);
     Mat3 mat_z = mat3_rot_z(cam->angleZ);
-    size_t sizeOfObj=sizeof(poly_input);
 
-    rotate_obj(*poly_input,poly_output,mat_x,sizeOfObj);
-    rotate_obj(*poly_output,poly_output,mat_y,sizeOfObj);
-    rotate_obj(*poly_output,poly_output,mat_z,sizeOfObj);
-    move_obj(poly_output,4,2,sizeOfObj);//temporary move to see the object clearly
-    visual_proj_obj(rendu,poly_output,cam,proj3D,sizeOfObj);
+    rotate_obj(poly_input_copy, poly_output, mat_x, size);
+    memcpy(poly_input_copy, poly_output, size * sizeof(Triangle));
+    rotate_obj(poly_input_copy,            poly_output, mat_y, size);
+    memcpy(poly_input_copy, poly_output, size * sizeof(Triangle));
+    rotate_obj(poly_input_copy,            poly_output, mat_z, size);
+    memcpy(poly_input_copy, poly_output, size * sizeof(Triangle));//TODO : make it cleaner it use a lot of memory
+    move_obj(poly_output,2,2,size);//temporary move to see the object clearly
+    visual_proj_obj(rendu,poly_output,cam,proj3D,size);
 }
 //TODO : cam in global variable ?
 void sdlEventCommands(Camera *cam,SDL_Event *e,int *isOpen)
@@ -173,8 +165,23 @@ int main(int argc, char *argv[]) {
     Mat4 proj3D=projectionMatrix();
     Camera cam = {0,0,0,0,0,0};
 
+    //creation of the triangles
 
-    all_proj_obj(c,&cam,&proj3D,rendu);
+    if (parser()==1)return 1;
+    Triangle polys_origin[cptTriangles];
+    Triangle polys_transformed[cptTriangles];
+    long unsigned int coordSize=3*sizeof(double);
+    for (int i = 0; i < cptTriangles; ++i)
+    {
+        for (int y = 0; y < 3; ++y)
+        {
+            memcpy(&polys_origin[i].points[y].pos,
+                &vertexList[trianglesIndexs[i].verticules[y]],
+                coordSize);
+        }
+    }
+
+    all_proj_obj(polys_origin,polys_transformed,&cam,&proj3D,rendu,cptTriangles);
     
     //light vec init
     long val=lightVec[0]*lightVec[0]+
@@ -196,7 +203,7 @@ int main(int argc, char *argv[]) {
         SDL_RenderClear(rendu);
         SDL_SetRenderDrawColor(rendu, 255, 255, 255, 255);
         
-        all_proj_obj(c,&cam,&proj3D,rendu);
+        all_proj_obj(polys_origin,polys_transformed,&cam,&proj3D,rendu,cptTriangles);
         SDL_RenderPresent(rendu);
         usleep(50000);
     }
