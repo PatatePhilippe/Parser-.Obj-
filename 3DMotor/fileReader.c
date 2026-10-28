@@ -4,22 +4,40 @@
 
 #include "fileReader.h"
 #include <assert.h>
+#include <string.h>
 
 
-void read3dFile() {
-    // Directly use "text.txt" as the filename since command-line args
-    // are not directly supported by %%cuda for argv
-    unsigned int log2size, size;
-    unsigned int *vec;
-    FILE *f = fopen("gf.obj", "r"); // Hardcoding filename
+
+unsigned int cptLine(){
+    FILE *f = fopen("../ressources/gf.obj", "r"); // Hardcoding filename
     if (f == NULL) {
         printf("Error: Could not open text.txt\n");
         exit(-1);
     }
-    unsigned int bytes = 100 * sizeof(unsigned int);
-    vec = (unsigned int *) malloc(bytes);
-    assert(vec);
-    char buffer[100];
+    char myString[100];
+    unsigned int cpt=0;
+    while(fgets(myString, 100, f)) {
+        cpt+=strlen(myString);
+    }
+    return cpt;
+}
+
+char* read3dFile() {
+
+    unsigned int size=cptLine();
+    char *vec=malloc(size*sizeof(char*)) ;
+    printf("taille %d \n",size);
+    FILE *f = fopen("../ressources/gf.obj", "r"); // Hardcoding filename
+    if (f == NULL) {
+        printf("Error: Could not open text.txt\n");
+        exit(-1);
+    }
+    char myString[100];
+    unsigned int cpt=0;
+    while(fgets(myString, 100, f)) {
+        strcpy(vec+cpt, myString);
+        cpt+=strlen(myString);
+    }
     fclose(f);
-    return;
+    return vec;
 }

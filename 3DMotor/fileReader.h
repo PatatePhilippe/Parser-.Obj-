@@ -6,6 +6,6 @@
 #ifndef FILE_READER
 #define FILE_READER
 
-void read3dFile();
+char* read3dFile();
 
 #endif //FILE_READER

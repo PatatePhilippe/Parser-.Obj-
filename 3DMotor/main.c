@@ -7,6 +7,8 @@
 #include<unistd.h>
 #include <math.h>
 #include <math.h>
+
+#include "fileReader.h"
 #include "../parser/OBJ_parser.h"
 
 
@@ -18,10 +20,10 @@ void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys,Camera *cam,Mat4 *proj3
     {
         //verification de mes normales
         Vec3 vecN,vecA,vecB;
-        for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
         {
-            vecA.pos[i]=polys[i].points[1].pos[i]-polys[i].points[0].pos[i];
-            vecB.pos[i]=polys[i].points[2].pos[i]-polys[i].points[0].pos[i];
+            vecA.pos[j]=polys[i].points[1].pos[j]-polys[i].points[0].pos[j];
+            vecB.pos[j]=polys[i].points[2].pos[j]-polys[i].points[0].pos[j];
         }
         //vecteur normalisé perpendiculaire au plan du vertex
         vecN.pos[0]=vecA.pos[1]*vecB.pos[2]-vecA.pos[2]*vecB.pos[1];
@@ -81,7 +83,8 @@ void all_proj_obj(Triangle *poly_input,Triangle *poly_output,Camera *cam,Mat4 *p
     memcpy(poly_input_copy, poly_output, size * sizeof(Triangle));
     rotate_obj(poly_input_copy,            poly_output, mat_z, size);
     memcpy(poly_input_copy, poly_output, size * sizeof(Triangle));//TODO : make it cleaner it use a lot of memory
-    move_obj(poly_output,2,2,size);//temporary move to see the object clearly
+    move_obj(poly_output,10,2,size);//temporary move to see the object clearly
+    move_obj(poly_output,-5,1,size);//temporary move to see the object clearly
     visual_proj_obj(rendu,poly_output,cam,proj3D,size);
 }
 //TODO : cam in global variable ?
@@ -141,7 +144,7 @@ int main(int argc, char *argv[]) {
     }
 
     SDL_Window *fenetre = SDL_CreateWindow("Ma fenêtre SDL",
-                                           600, 400,SDL_WINDOW_RESIZABLE);
+                                           900, 600,SDL_WINDOW_RESIZABLE);
 
     if (!fenetre) {
         printf("Erreur SDL_CreateWindow : %s\n", SDL_GetError());
@@ -167,20 +170,30 @@ int main(int argc, char *argv[]) {
 
     //creation of the triangles
 
-    if (parser()==1)return 1;
+    char* OBJfile = read3dFile();
+    if (parser(OBJfile)==1)return 1;
+    printf("triangle vertexsize %d %d \n",cptTriangles,cptVertexs);
     Triangle polys_origin[cptTriangles];
     Triangle polys_transformed[cptTriangles];
-    long unsigned int coordSize=3*sizeof(double);
-    for (int i = 0; i < cptTriangles; ++i)
-    {
-        for (int y = 0; y < 3; ++y)
-        {
+    unsigned int coordSize=3*sizeof(double);
+    for (int i = 0; i < cptTriangles; ++i){
+        for (int y = 0; y < 3; ++y){
+            printf("%lu \n",sizeof(trianglesIndexs[i].verticules[y]));
+
+            unsigned int targetVertex = trianglesIndexs[i].verticules[y];
+            printf("i:%d, y:%d -> Demande le sommet index : %u (Max autorisé : %d)\n", i, y, targetVertex, cptVertexs - 1);
+            if (targetVertex >= (unsigned int)cptVertexs) {
+                fprintf(stderr, "CRITIQUE : L'index de triangle %d pointe vers le sommet %u qui n'existe pas !\n", i, targetVertex);
+                return 1;
+            }
             memcpy(&polys_origin[i].points[y].pos,
-                &vertexList[trianglesIndexs[i].verticules[y]],
-                coordSize);
+                   &vertexList[targetVertex].coords,
+                   coordSize);
+
         }
     }
 
+    printf("test %f %f %f \n",polys_origin[0].points[0].pos[0],polys_origin[0].points[0].pos[1],polys_origin[0].points[0].pos[2]);
     all_proj_obj(polys_origin,polys_transformed,&cam,&proj3D,rendu,cptTriangles);
     
     //light vec init

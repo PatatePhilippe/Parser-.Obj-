@@ -12,10 +12,10 @@ typedef struct {
     double coords[3];
 } vertex;
 
-extern triangle trianglesIndexs[400];
-extern vertex vertexList[400];
+extern triangle trianglesIndexs[500];
+extern vertex vertexList[300];
 extern int cptTriangles;  // ou size_t selon votre type actuel
 extern int cptVertexs;    // ou size_t selon votre type actuel
-int parser();
+int parser(char* content);
 
 #endif //OBJ_parser

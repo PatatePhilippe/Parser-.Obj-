@@ -9,8 +9,8 @@ const int fovX = 50;
 const double fovY = 50.0;
 const double zFar = 10;
 const double zNear = 1;
-const double screenW=600;
-const double screenH=400;
+const double screenW=900;
+const double screenH=600;
 const float fovXRad = fovX * (3.14159265359F / 180.0F);
 
 Mat3 mat3_rot_x(double a) {
