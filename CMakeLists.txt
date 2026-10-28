@@ -24,6 +24,7 @@ target_include_directories(alexer INTERFACE
 
 add_executable(parseurTest
         parser/OBJ_parser.c
+        parser/OBJ_parser.h
 )
 
 target_link_libraries(parseurTest PRIVATE alexer)
@@ -37,6 +38,7 @@ add_executable(testWindows
         ./3DMotor/3DMotor.h
         ./3DMotor/fileReader.c
         ./3DMotor/fileReader.h
+        parser/OBJ_parser.h
 )
 
 target_link_libraries(testWindows PRIVATE m)

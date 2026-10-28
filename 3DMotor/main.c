@@ -6,54 +6,40 @@
 #include "3DMotor.h"
 #include<unistd.h>
 #include <math.h>
+#include <math.h>
 
 #include "fileReader.h"
 
-Vec3 lightVec={0.0F,0.0F,-1.0F};
+long lightVec[3]={0.0,0.0,-1.0};
 
-void printCube(Cube c)
-{
-    for (int i = 0; i < 12; ++i)
-    {
-        for (int j = 0; j < 3; ++j)
-        {
-            printf("(%f %f %f)\n",c.mesh[i].points[j].pos[0],
-                c.mesh[i].points[j].pos[1],
-                c.mesh[i].points[j].pos[2]);
-        }
-    }
-}
+// void printCube(Cube c)
+// {
+//     for (int i = 0; i < 12; ++i)
+//     {
+//         for (int j = 0; j < 3; ++j)
+//         {
+//             printf("(%f %f %f)\n",c.mesh[i].points[j].pos[0],
+//                 c.mesh[i].points[j].pos[1],
+//                 c.mesh[i].points[j].pos[2]);
+//         }
+//     }
+// }
 
-void showTriangle(SDL_Renderer *rendu, Cube *c,Camera *cam,Mat4 *proj3D)
+void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys[],Camera *cam,Mat4 *proj3D,size_t size)
 {
-    for (int i = 0; i < 12; ++i)
+    for (int i = 0; i < size; ++i)
     {
         //verification de mes normales
         Vec3 vecN,vecA,vecB;
-        //line from O to 1
-        vecA.pos[0]=c->mesh[i].points[1].pos[0]-c->mesh[i].points[0].pos[0];
-        vecA.pos[1]=c->mesh[i].points[1].pos[1]-c->mesh[i].points[0].pos[1];
-        vecA.pos[2]=c->mesh[i].points[1].pos[2]-c->mesh[i].points[0].pos[2];
-
-        //line from O to 2
-        vecB.pos[0]=c->mesh[i].points[2].pos[0]-c->mesh[i].points[0].pos[0];
-        vecB.pos[1]=c->mesh[i].points[2].pos[1]-c->mesh[i].points[0].pos[1];
-        vecB.pos[2]=c->mesh[i].points[2].pos[2]-c->mesh[i].points[0].pos[2];
+        for (int i = 0; i < 3; ++i)
+        {
+            vecA.pos[i]=polys[i]->points[1].pos[i]-polys[i]->points[0].pos[i];
+            vecB.pos[i]=polys[i]->points[2].pos[i]-polys[i]->points[0].pos[i];
+        }
         //vecteur normalisé perpendiculaire au plan du vertex
         vecN.pos[0]=vecA.pos[1]*vecB.pos[2]-vecA.pos[2]*vecB.pos[1];
         vecN.pos[1]=vecA.pos[2]*vecB.pos[0]-vecA.pos[0]*vecB.pos[2];
         vecN.pos[2]=vecA.pos[0]*vecB.pos[1]-vecA.pos[1]*vecB.pos[0];
-
-        // printf("Triangle %d\n", i);
-
-        // for (int j = 0; j < 3; ++j)
-        // {
-        //     printf("P%d = (%f, %f, %f)\n",
-        //         j,
-        //         c->mesh[i].points[j].pos[0],
-        //         c->mesh[i].points[j].pos[1],
-        //         c->mesh[i].points[j].pos[2]);
-        // }
 
         double l=(vecN.pos[0]*vecN.pos[0]+
             vecN.pos[1]*vecN.pos[1]+
@@ -63,92 +49,48 @@ void showTriangle(SDL_Renderer *rendu, Cube *c,Camera *cam,Mat4 *proj3D)
         vecN.pos[1]/=res;
         vecN.pos[2]/=res;
 
-
         double facing =
-            vecN.pos[0] * (c->mesh[i].points[2].pos[0] - cam->x) +
-            vecN.pos[1] * (c->mesh[i].points[2].pos[1] - cam->y) +
-            vecN.pos[2] * (c->mesh[i].points[2].pos[2] - cam->z);
+            vecN.pos[0] * (polys[i]->points[2].pos[0] - cam->x) +
+            vecN.pos[1] * (polys[i]->points[2].pos[1] - cam->y) +
+            vecN.pos[2] * (polys[i]->points[2].pos[2] - cam->z);
 
-        // printf("Triangle %d: N=(%.3f, %.3f, %.3f), facing=%.6f\n",
-        //        i,
-        //        vecN.pos[0], vecN.pos[1], vecN.pos[2],
-        //        facing);
-
-        if ((vecN.pos[0]*(c->mesh[i].points[2].pos[0]-cam->x))+
-            (vecN.pos[1]*(c->mesh[i].points[2].pos[1]-cam->y))+
-            (vecN.pos[2]*(c->mesh[i].points[2].pos[2]-cam->z))<-0.35F
-            )
+        if ((vecN.pos[0] * (polys[i]->points[2].pos[0]-cam->x))+
+            (vecN.pos[1] * (polys[i]->points[2].pos[1]-cam->y))+
+            (vecN.pos[2] * (polys[i]->points[2].pos[2]-cam->z))<-0.35F)
         {
-            //printf("res%d %f",i,(vecN.pos[0]*(c->mesh[i].points[2].pos[0]-cam->x))+
-    //vecN.pos[1]*(c->mesh[i].points[2].pos[1]-cam->y))+
-    //(vecN.pos[2]*(c->mesh[i].points[2].pos[2]-cam->z)));
-            //printf("%f,%f,%f \n", vecN.pos[0],vecN.pos[1],vecN.pos[2]);
-            double dotProduct=(vecN.pos[0]*lightVec.pos[0]+
-            vecN.pos[1]*lightVec.pos[1]+
-            vecN.pos[2]*lightVec.pos[2]);
+            double dotProduct=(vecN.pos[0]*lightVec[0]+
+            vecN.pos[1]*lightVec[1]+
+            vecN.pos[2]*lightVec[2]);
 
-            //printf("dot : %f\n",dotProduct);
-
-            //affichage de mes vertexs
-            Triangle t=triangle_final(&c->mesh[i],proj3D);
-            //
-            // for (int j = 0; j < 3; ++j)
-            // {
-            //     printf("P%d = (%f, %f, %f)\n",
-            //         j,
-            //         (t.points[j].pos[0]+0.5)*600,
-            //          (0.5-t.points[j].pos[1])*400,
-            //          (t.points[j].pos[2]));
-            // }
+            //showing my vertex
+            Triangle t=triangle_final(polys[i],proj3D);
             SDL_Vertex test[3];
-            test[0].position.x = (t.points[0].pos[0]+0.5)*600;
-            test[0].position.y = (0.5-t.points[0].pos[1])*400;
-            test[0].color.r = dotProduct;
-            test[0].color.g = dotProduct;
-            test[0].color.b = dotProduct;
-            test[0].color.a = 1.0;
-
-            // left
-            test[1].position.x = (t.points[1].pos[0]+0.5)*600;
-            test[1].position.y = (0.5-t.points[1].pos[1])*400;
-            test[1].color.r = dotProduct;
-            test[1].color.g = dotProduct;
-            test[1].color.b = dotProduct;
-            test[1].color.a = 1.0;
-
-            // right
-            test[2].position.x = (t.points[2].pos[0]+0.5)*600;
-            test[2].position.y = (0.5-t.points[2].pos[1])*400;
-            test[2].color.r = dotProduct;
-            test[2].color.g = dotProduct;
-            test[2].color.b = dotProduct;
-            test[2].color.a = 1.0;
+            for (int i = 0; i < 3; ++i)
+            {
+                test[i].position.x = (t.points[i].pos[0]+0.5)*600;
+                test[i].position.y = (0.5-t.points[i].pos[1])*400;
+                test[i].color.r = dotProduct;
+                test[i].color.g = dotProduct;
+                test[i].color.b = dotProduct;
+                test[i].color.a = 1.0;
+            }
             SDL_RenderGeometry(rendu, NULL, test, 3, NULL, 0);
         }
     }
 }
 
 
-Cube calculCube(Cube c,Camera *cam,Mat4 *proj3D,SDL_Renderer *rendu)
-{   //printf("passe pour i,j : %d %d\n",4,2);
-
-    //cam_turn( cam, 'y', 0.03);
-    //cam_turn( cam, 'x', 0.03);
-    //cam_turn( cam, 'z', 0.03);
-
+void all_proj_obj(Triangle *poly_input[],Triangle *poly_output[],Camera *cam,Mat4 *proj3D,SDL_Renderer *rendu){
     Mat3 mat_y = mat3_rot_y(cam->angleY);
     Mat3 mat_x = mat3_rot_x(cam->angleX);
     Mat3 mat_z = mat3_rot_z(cam->angleZ);
+    size_t sizeOfObj=sizeof(poly_input);
 
-
-    Cube projectionC = cube_transform(c,mat_y);
-    projectionC = cube_transform(projectionC,mat_z);
-    projectionC = cube_transform(projectionC,mat_x);
-    cube_move(&projectionC ,3,2);
-    showTriangle(rendu,&projectionC,cam,proj3D);
-
-
-    return projectionC;
+    rotate_obj(*poly_input,poly_output,mat_x,sizeOfObj);
+    rotate_obj(*poly_output,poly_output,mat_y,sizeOfObj);
+    rotate_obj(*poly_output,poly_output,mat_z,sizeOfObj);
+    move_obj(poly_output,4,2,sizeOfObj);//temporary move to see the object clearly
+    visual_proj_obj(rendu,poly_output,cam,proj3D,sizeOfObj);
 }
 //TODO : cam in global variable ?
 void sdlEventCommands(Camera *cam,SDL_Event *e,int *isOpen)
@@ -163,32 +105,32 @@ void sdlEventCommands(Camera *cam,SDL_Event *e,int *isOpen)
             break;
             //camera rotation
         case SDLK_Q:
-            cam_turn( cam, 'y', 0.03);
+            turn_cam( cam, 'y', 0.03);
             //projC2=calculCube(c2,&cam,proj3D);
             break;
         case SDLK_D:
-            cam_turn( cam, 'y', -0.03);
+            turn_cam( cam, 'y', -0.03);
             break;
         case SDLK_Z:
-            cam_turn( cam, 'x', 0.03);
+            turn_cam( cam, 'x', 0.03);
             break;
         case SDLK_S:
-            cam_turn( cam, 'x', -0.03);
+            turn_cam( cam, 'x', -0.03);
             break;
-            //TODO : camera movements
-
+            
+        //TODO : camera moving forward, bakcward ...
         // case SDLK_DOWN:
         //     cam_move( cam, 'f', 1);
         //
         //     break;
         // case SDLK_UP:
-        //     cam_turn( cam, 'y', -0.03);
+        //     turn_cam( cam, 'y', -0.03);
         //     break;
         // case SDLK_LEFT:
-        //     cam_turn( cam, 'x', 0.03);
+        //     turn_cam( cam, 'x', 0.03);
         //     break;
         // case SDLK_RIGHT:
-        //     cam_turn( cam, 'x', -0.03);
+        //     turn_cam( cam, 'x', -0.03);
         //     break;
 
         default:
@@ -228,26 +170,20 @@ int main(int argc, char *argv[]) {
     SDL_SetRenderLogicalPresentation(rendu,600,400,SDL_LOGICAL_PRESENTATION_STRETCH);
 
     //3D object init
-    Cube c,c2,c3;
     Mat4 proj3D=projectionMatrix();
     Camera cam = {0,0,0,0,0,0};
-    c = cube_make(1);
-    c2 = cube_make(1);
-    c3 = cube_make(1);
-    cube_move(&c2 ,1,0);
-    cube_move(&c3 ,1,2);
-    Cube projC=calculCube(c,&cam,&proj3D,rendu);
-    //Cube projC2=calculCube(c2,&cam,proj3D);
-    //Cube projC3=calculCube(c3,&cam,proj3D);
 
+
+    all_proj_obj(c,&cam,&proj3D,rendu);
+    
     //light vec init
-    double val=lightVec.pos[0]*lightVec.pos[0]+
-                        lightVec.pos[1]*lightVec.pos[1]+
-                        lightVec.pos[2]*lightVec.pos[2];
-    const double res2 =sqrt(val);
-    lightVec.pos[0]/=res2;
-    lightVec.pos[1]/=res2;
-    lightVec.pos[2]/=res2;
+    long val=lightVec[0]*lightVec[0]+
+                        lightVec[1]*lightVec[1]+
+                        lightVec[2]*lightVec[2];
+    const long res2 =(long) sqrtl(val);
+    lightVec[0]/=res2;
+    lightVec[1]/=res2;
+    lightVec[2]/=res2;
 
     while (isOpen!=0)
     {
@@ -255,22 +191,14 @@ int main(int argc, char *argv[]) {
         while (SDL_PollEvent(&e)) {
             sdlEventCommands(&cam,&e,&isOpen);
         }
-        //usleep(30000);
-        //printf("TEST2\n");
+        
         SDL_SetRenderDrawColor(rendu, 0, 0, 0, 255);
         SDL_RenderClear(rendu);
         SDL_SetRenderDrawColor(rendu, 255, 255, 255, 255);
-
-        //TODO : show the vertexs in parallelism
-        //showTriangle(rendu,&projC2);
-        //showTriangle(rendu,&projC3);
-        calculCube(c,&cam,&proj3D,rendu);
+        
+        all_proj_obj(c,&cam,&proj3D,rendu);
         SDL_RenderPresent(rendu);
-        //projC2=calculCube(c2,&cam,proj3D);
-        //projC3=calculCube(c3,&cam,proj3D);
         usleep(50000);
-
-
     }
     // 5. Libération de la mémoire et fermeture
     SDL_DestroyRenderer(rendu);

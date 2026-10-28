@@ -3,7 +3,6 @@
 //
 
 #include "fileReader.h"
-
 #include <assert.h>
 
 

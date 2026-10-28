@@ -1,10 +1,10 @@
+#define ALEXER_IMPLEMENTATION
 #include <stdio.h>
 #include <alexer.h>
 #include <unistd.h>
 
-#define ALEXER_IMPLEMENTATION
 #include <errno.h>
-
+#include "OBJ_parser.h"
 
 typedef enum {
     PUNCT_POINT,
@@ -41,17 +41,6 @@ const char *keywords[COUNT_KEYWORDS] ={
     [KEYWORD_MTL]        = "mtllib",
     [KEYWORD_USE]        = "usemtl",
 };
-//TODO : implement something that look like the match in ocaml ?
-// typedef enum {
-//     POINT_CREATION,
-//     TRIANGLE_CREATION,
-//     POINT_COUNT,
-// } cmd;
-//
-// const Alexer_Kind *test[POINT_COUNT] ={
-//     [POINT_CREATION]      = {KEYWORD_POINT,ALEXER_INT,ALEXER_INT,ALEXER_INT},
-//     [TRIANGLE_CREATION]      = {KEYWORD_VERTEX,ALEXER_INT,ALEXER_INT,ALEXER_INT,ALEXER_INT},
-// };
 
 
 const char *sl_comments[] = {
@@ -66,7 +55,8 @@ typedef struct {
     double coords[3];
 } vertex;
 
-typedef struct {//TODO : use that
+
+typedef struct {//TODO : use that later to extract data
     Alexer *lexer;
     Alexer_Token token;
     vertex *vertices;
@@ -81,13 +71,16 @@ uint64_t start_tokens[]={ALEXER_ID(ALEXER_KEYWORD,KEYWORD_VERTEX),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_POINT),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_VERTEX),
                         ALEXER_ID(ALEXER_KEYWORD,KEYWORD_S),
-                        ALEXER_ID(ALEXER_KEYWORD,KEYWORD_USE)};
+                        ALEXER_ID(ALEXER_KEYWORD,KEYWORD_USE),
+                        ALEXER_END,};
 uint64_t start_double[]={ALEXER_ID(ALEXER_PUNCT,PUNCT_MINUS),
                         ALEXER_INT};
 
 triangle trianglesIndexs[400];//TODO : make an auto incrementing triangle memory space or read the file in advance and count the number of vertexs points and normals
 vertex vertexList[400];//TODO : make an auto incrementing vertex memory space or read the file in advance and count the number of vertexs points and normals
 
+unsigned int cptTriangles=0;
+unsigned int cptVertexs=0;
 
 bool double_parser(double *resultPointer,Alexer_Token *t,Alexer *l){//TODO : change variables names
     bool negation=false;
@@ -107,7 +100,6 @@ bool double_parser(double *resultPointer,Alexer_Token *t,Alexer *l){//TODO : cha
     if (!alexer_expect_id(l,*t,ALEXER_INT)) return false;
     char res[t->end - t->begin];
     memcpy(&res,t->begin,(t->end - t->begin)*sizeof(char));
-    printf("res =  %s.%s \n",input2,res);
 
     char str[32];
     snprintf(str, sizeof(str), "%s.%s", input2,res);
@@ -116,13 +108,12 @@ bool double_parser(double *resultPointer,Alexer_Token *t,Alexer *l){//TODO : cha
     {
         *resultPointer*=-1;
     }
-    printf("%f \n",*resultPointer);
     return true;
 }
 
-bool polygon_parser(Alexer_Token *t,Alexer *l,unsigned int *cptT){
+bool polygon_parser(Alexer_Token *t,Alexer *l){
 
-    trianglesIndexs[*cptT].verticules=malloc(3*sizeof(unsigned int));
+    trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
     unsigned int tempPos[4];
     for (int index = 0; index < 3; ++index){
 
@@ -149,17 +140,17 @@ bool polygon_parser(Alexer_Token *t,Alexer *l,unsigned int *cptT){
         if (!(alexer_expect_id(l,*t, ALEXER_INT))) return false;
         alexer_get_token(l, t );
 
-        memcpy(&trianglesIndexs[*cptT].verticules[0],&tempPos[0],3*sizeof(unsigned int));
-        *cptT+=1;
-        trianglesIndexs[*cptT].verticules=malloc(3*sizeof(unsigned int));
-        trianglesIndexs[*cptT].verticules[0]=tempPos[2];
-        trianglesIndexs[*cptT].verticules[1]=tempPos[3];
-        trianglesIndexs[*cptT].verticules[2]=tempPos[0];
+        memcpy(&trianglesIndexs[cptTriangles].verticules[0],&tempPos[0],3*sizeof(unsigned int));
+        cptTriangles++;
+        trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
+        trianglesIndexs[cptTriangles].verticules[0]=tempPos[2];
+        trianglesIndexs[cptTriangles].verticules[1]=tempPos[3];
+        trianglesIndexs[cptTriangles].verticules[2]=tempPos[0];
     }else{
         if(!alexer_expect_one_of_ids(l,*t,start_tokens,8))return false;
-        memcpy(&trianglesIndexs[*cptT].verticules[0],&tempPos[0],3*sizeof(unsigned int));
+        memcpy(&trianglesIndexs[cptTriangles].verticules[0],&tempPos[0],3*sizeof(unsigned int));
     }
-    *cptT+=1;
+    cptTriangles++;
     alexer_get_token(l, t );
     return true;
 }
@@ -183,7 +174,7 @@ bool material_file_parser(Alexer_Token *t,Alexer *l){
     if (!alexer_expect_id(l,*t, ALEXER_SYMBOL)) return false;
     if (access("../Goldfish_01.mtl", F_OK) != 0) {
         puts( strerror( errno ) );
-        return false;//TODO : change the path part later
+        //return false;//TODO : change the path part later
     }
     alexer_get_token(l, t );
     return true;
@@ -191,23 +182,23 @@ bool material_file_parser(Alexer_Token *t,Alexer *l){
 
 bool material_usage_parser(Alexer_Token *t,Alexer *l){
     alexer_get_token(l, t );
-    alexer_get_token(l, t );
     return true;
 }//TODO : the result is not verified and not used for now
 
-bool vertex_parser(Alexer_Token *t,Alexer *l,unsigned int *cptVertexs){
+bool vertex_parser(Alexer_Token *t,Alexer *l){
     for (int i = 0; i < 3; ++i)
     {
-        if (!double_parser(&vertexList[*cptVertexs].coords[i],t,l))return false;
+        if (!double_parser(&vertexList[cptVertexs].coords[i],t,l))return false;
         alexer_get_token(l, t );
     }
-    *cptVertexs+=1;
+    cptVertexs+=1;
     return true;
     //printf(" doubles : %f %f %f",x,y,z);
 }
 
 //TODO : change name to it's usage later
 bool s_parser(Alexer_Token *t,Alexer *l){
+    //l->diagf(t->loc, "ERROR verif", "%s: %.*s \n", alexer_kind_name(ALEXER_KIND(t->id)),t->end - t->begin, t->begin);
     alexer_get_token(l, t );
     return true;
 }//TODO : the result is not verified and not used for now
@@ -223,8 +214,7 @@ bool normal_parser(Alexer_Token *t,Alexer *l){
 }//TODO : the result is verified and not used for now
 
 
-int main()
-{
+int main(){
     const char *file_path = "example/path"; // The file path is only needed for diagnostic message
     const char *content =
     "# Blender v2.78 (sub 0) OBJ File: '12.blend\n"
@@ -232,12 +222,14 @@ int main()
     "mtllib Goldfish_01.mtl\n"
     "g Goldfish_01_Cube.058\n"
     "v -1.791817 2.124454 2.120096\n"
+    "v -3.791817 1.124454 3.120096\n"
+    "v -2.721817 -2.124454 -0.120096\n"
     "vn -0.4091 -0.8730 0.2654\n"
     "usemtl FF5722\n"
     "s off\n"
     "f 31//1 19//1 5//1 26//1\n"
     "";
-    Alexer l = alexer_create(file_path, content, strlen(content));
+    Alexer l=alexer_create(file_path, content, strlen(content));
     l.puncts = puncts;
     l.puncts_count = ALEXER_ARRAY_LEN(puncts);
     l.keywords = keywords;
@@ -246,50 +238,51 @@ int main()
     l.sl_comments_count = ALEXER_ARRAY_LEN(sl_comments);
     Alexer_Token token = {0};
     bool end=false;
-
-
-    unsigned int cptTriangles=0;
-    unsigned int cptVertexs=0;
-
-
     //TODO: rename those variables to clearer names
     uint64_t cmdToken2 = 0;
     alexer_get_token(&l, &token );
     while (!end){
-        if (!alexer_expect_one_of_ids(&l,token,start_tokens,8)) return 1;
+        if (!alexer_expect_one_of_ids(&l,token,start_tokens,9)) return 1;
+
         switch (ALEXER_KIND(token.id)){
             case  ALEXER_KEYWORD:
-                l.diagf(token.loc, "COMMANDE", "%s: %.*s", alexer_kind_name(ALEXER_KIND(token.id)),token.end - token.begin, token.begin);
+                l.diagf(token.loc, "COMMANDE", "%s: %.*s \n", alexer_kind_name(ALEXER_KIND(token.id)),token.end - token.begin, token.begin);
                 cmdToken2=token.id;
                 alexer_get_token(&l, &token );
                 switch (cmdToken2){
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_VERTEX):
-                        if (!polygon_parser(&token,&l,&cptTriangles)) return 1;
+                        if (!polygon_parser(&token,&l)) return 1;
+                        printf("passe v \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_G):
                         if (!g_parser(&token,&l)) return 1;
+                        printf("passe g \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_MTL):
                         if (!material_file_parser(&token,&l)) return 1;
+                        printf("passe mtl \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_USE):
                         if (!material_usage_parser(&token,&l)) return 1;
+                        printf("passe use \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_POINT):
-                        if (!vertex_parser(&token,&l,&cptVertexs)) return 1;
+                        if (!vertex_parser(&token,&l)) return 1;
+                        printf("passe p \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_S):
                         if (!s_parser(&token,&l)) return 1;
+                        printf("passe s \n");
                         break;
                     case ALEXER_ID(ALEXER_KEYWORD,KEYWORD_NORMAL):
                         if (!normal_parser(&token,&l)) return 1;
+                        printf("passe n \n");
                         break;
                     default:
                         printf("error");
                         break;
                 }
                 break;
-
             case ALEXER_END:
                 end = true;
                 break;
@@ -299,10 +292,9 @@ int main()
                 break;
         }
     }
-    //while (alexer_get_token(&l, &t)) {
-    //    l.diagf(t.loc, "INFO", "%s: %.*s", alexer_kind_name(ALEXER_KIND(t.id)), t.end - t.begin, t.begin);
-    //}
-    //if (!alexer_expect_id(&l, t, ALEXER_END)) return 1;
-
+    printf("compteurs %d %d",cptTriangles,cptVertexs);
+    for (int i = 0; i < cptVertexs; ++i){
+        printf("coords point %f, %f, %f \n",vertexList[i].coords[0],vertexList[i].coords[1],vertexList[i].coords[2]);
+    }
     return 0;
 }

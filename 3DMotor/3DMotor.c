@@ -89,47 +89,42 @@ Triangle triangle_final(Triangle *t,Mat4 *projection3D) { //TODO : change name t
 
 }
 
-Cube cube_make(double size) {
-    double h = size / 2.0;
-    Cube c = {{
-        //point(x y z)
-        //south
-        {{{ -h,-h, -h},{ -h,h, -h},{ h,h, -h}}},
-        {{{ -h,-h, -h},{ h,h, -h},{ h,-h, -h}}},
-        //top
-        {{{ -h,h, -h},{ -h,h, h},{ h,h, h}}},
-        {{{ -h,h, -h},{ h,h, h},{ h,h, -h}}},
-        //east
-        {{{ h,-h, -h},{ h,h, -h},{ h,h, h}}},
-        {{{ h,-h, -h},{ h,h, h},{ h,-h, h}}},
-        //west
-        {{{ -h,-h, h},{ -h,h, h},{ -h,h, -h}}},
-        {{{ -h,-h, h},{ -h,h, -h},{ -h,-h, -h}}},
-        //bottom
-        {{{ h,-h, h},{ -h,-h, h},{ -h,-h, -h}}},
-        {{{ h,-h, h},{ -h,-h, -h},{ h,-h, -h}}},
-        //north
-        {{{ h,-h, h},{ h,h, h},{ -h,h, h}}},
-        {{{ h,-h, h},{ -h,h, h},{ -h,-h, h}}},
-    }};
-    return c;
-}
+// Cube cube_make(double size) {
+//     double h = size / 2.0;
+//     Cube c = {{
+//         //point(x y z)
+//         //south
+//         {{{ -h,-h, -h},{ -h,h, -h},{ h,h, -h}}},
+//         {{{ -h,-h, -h},{ h,h, -h},{ h,-h, -h}}},
+//         //top
+//         {{{ -h,h, -h},{ -h,h, h},{ h,h, h}}},
+//         {{{ -h,h, -h},{ h,h, h},{ h,h, -h}}},
+//         //east
+//         {{{ h,-h, -h},{ h,h, -h},{ h,h, h}}},
+//         {{{ h,-h, -h},{ h,h, h},{ h,-h, h}}},
+//         //west
+//         {{{ -h,-h, h},{ -h,h, h},{ -h,h, -h}}},
+//         {{{ -h,-h, h},{ -h,h, -h},{ -h,-h, -h}}},
+//         //bottom
+//         {{{ h,-h, h},{ -h,-h, h},{ -h,-h, -h}}},
+//         {{{ h,-h, h},{ -h,-h, -h},{ h,-h, -h}}},
+//         //north
+//         {{{ h,-h, h},{ h,h, h},{ -h,h, h}}},
+//         {{{ h,-h, h},{ -h,h, h},{ -h,-h, h}}},
+//     }};
+//     return c;
+// }
 
-Cube cube_transform(Cube c,Mat3 matProjection) {//TODO : more explicit name
-    Cube m = {{}};
-    Triangle t={};
-    for(int i =0 ; i < 12; i++) {
+void rotate_obj(Triangle poly_input[],Triangle *poly_output[],Mat3 matProjection,size_t size) {//TODO : more explicit name
+    for(int i =0 ; i < size; i++) {
         for(int j =0 ; j < 3; j++) {
-            t.points[j]=mat3_mul(matProjection,c.mesh[i].points[j]);
+            poly_output[i]->points[j]=mat3_mul(matProjection,poly_input[i].points[j]);
         }
-        m.mesh[i] = t;
     }
-    return m;
-
 }
 
 
-void cam_move(Camera *cam,char dir,int amount) {
+void move_cam(Camera *cam,char dir,int amount) {
     if (dir == 'f') {
         cam->x+=amount;
     }
@@ -137,17 +132,15 @@ void cam_move(Camera *cam,char dir,int amount) {
         cam->y+=amount;
     }
 }
-void cube_move(Cube *c ,double dist,int indexOfAxe) {
-    for (int i = 0; i < 12; ++i)
-    {
-        for (int j = 0; j < 3; ++j)
-        {
-            c->mesh[i].points[j].pos[indexOfAxe] += dist;
+void move_obj(Triangle *poly_input[] ,double dist,int indexOfAxe,size_t size) {//TODO : change var name it's not really explicit
+    for (int i = 0; i < size; ++i){
+        for (int j = 0; j < 3; ++j){
+            poly_input[i]->points[j].pos[indexOfAxe] += dist;
         }
     }
 }
 
-void cam_turn(Camera *cam, char dir, double amount) {
+void turn_cam(Camera *cam, char dir, double amount) {
     if (dir == 'y') {
         cam->angleY += amount;
         if (cam->angleY > 6.28) cam->angleY -= 6.28;
