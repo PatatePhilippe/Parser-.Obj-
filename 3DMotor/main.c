@@ -62,6 +62,13 @@ void visual_proj_obj(SDL_Renderer *rendu,Triangle *polys,Camera *cam,Mat4 *proj3
                 test[i].color.g = dotProduct;
                 test[i].color.b = dotProduct;
                 test[i].color.a = 1.0;
+
+                //lines to show the faces better
+                SDL_RenderLine(rendu,
+                    (t.points[i].pos[0]+0.5)*600,
+                    (0.5-t.points[i].pos[1])*400,
+                    (t.points[(i+1)%3].pos[0]+0.5)*600,
+                    (0.5-t.points[(i+1)%3].pos[1])*400);
             }
             SDL_RenderGeometry(rendu, NULL, test, 3, NULL, 0);
         }
@@ -214,7 +221,7 @@ int main(int argc, char *argv[]) {
         
         SDL_SetRenderDrawColor(rendu, 0, 0, 0, 255);
         SDL_RenderClear(rendu);
-        SDL_SetRenderDrawColor(rendu, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(rendu, 200, 200, 200, 255);
         
         all_proj_obj(polys_origin,polys_transformed,&cam,&proj3D,rendu,cptTriangles);
         SDL_RenderPresent(rendu);

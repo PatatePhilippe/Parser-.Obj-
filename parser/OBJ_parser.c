@@ -144,23 +144,23 @@ bool polygon_parser(Alexer_Token *t,Alexer *l){
             if (!(alexer_expect_id(l,*t, ALEXER_INT))) return false;
             alexer_get_token(l, t );
             //calculation of a new average point a the center of the polygone to divide him into triangles
-            vertex center_point={0,0,0};
-            for (int i = 0; i < 5; ++i){
-                for (int y = 0; y < 3; ++y){
-                    center_point.coords[y]+=vertexList[tempPos[i]].coords[y]/5.0F;
-                }
-            }
-            //add that point
-            memcpy(&vertexList->coords,&center_point.coords,3*sizeof(double));
-            for (int i = 0; i < 5; ++i){
-                trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
-                trianglesIndexs[cptTriangles].verticules[0]=tempPos[i];
-                trianglesIndexs[cptTriangles].verticules[1]=tempPos[(i+1)%5];
-                trianglesIndexs[cptTriangles].verticules[2]=cptVertexs;
-                cptTriangles++;
-            }
-            cptVertexs++;
 
+
+            trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
+            trianglesIndexs[cptTriangles].verticules[0]=tempPos[0];
+            trianglesIndexs[cptTriangles].verticules[1]=tempPos[1];
+            trianglesIndexs[cptTriangles].verticules[2]=tempPos[3];
+            cptTriangles++;
+            trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
+            trianglesIndexs[cptTriangles].verticules[0]=tempPos[1];
+            trianglesIndexs[cptTriangles].verticules[1]=tempPos[2];
+            trianglesIndexs[cptTriangles].verticules[2]=tempPos[3];
+            cptTriangles++;
+            trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
+            trianglesIndexs[cptTriangles].verticules[0]=tempPos[3];
+            trianglesIndexs[cptTriangles].verticules[1]=tempPos[4];
+            trianglesIndexs[cptTriangles].verticules[2]=tempPos[0];
+            cptTriangles++;
         }else{
             trianglesIndexs[cptTriangles].verticules=malloc(3*sizeof(unsigned int));
             memcpy(trianglesIndexs[cptTriangles].verticules,&tempPos,3*sizeof(unsigned int));

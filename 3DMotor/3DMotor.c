@@ -5,7 +5,7 @@
 #include "3DMotor.h"
 #include <math.h>
 #include <stdio.h>
-const int fovX = 50;
+const int fovX = 30;
 const double fovY = 50.0;
 const double zFar = 10;
 const double zNear = 1;
